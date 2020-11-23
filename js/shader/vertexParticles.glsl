@@ -12,13 +12,15 @@ float PI = 3.141592653589793238;
 void main() {
   vUv = uv;
   vec3 pos = position;
-  pos.z = position.z + move * aSpeed + aOffset;
-
+  
+  pos.z = mod(position.z + move * aSpeed + aOffset +time*29.0,2000.);
+vec3 mixer = mix(pos, position, fract(-time*0.1));
 
 
   vCoordinates = aCoordinates.xy;
-  vPosition = position;
-  vec4 mvPosition = modelViewMatrix * vec4( position, 1. );
+  vPosition = pos;
+  vec4 mvPosition = modelViewMatrix * vec4( mixer, 1. );
   gl_PointSize = 2000. * ( 1. / - mvPosition.z );
   gl_Position = projectionMatrix * mvPosition;
+
 }

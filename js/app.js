@@ -3,8 +3,8 @@ import fragment from "./shader/fragment.glsl";
 import fragmentP from "./shader/fragmentP.glsl";
 import vertex from "./shader/vertex.glsl";
 import vertexP from "./shader/vertexParticles.glsl";
-import t1 from "./img/psyswirl.png";
-import mask from "./img/magic_03.png";
+import t1 from "./img/wispy.png";
+import mask from "./img/smoke_04.png";
 let OrbitControls = require("three-orbit-controls")(THREE);
 
 export default class Sketch {
@@ -26,13 +26,13 @@ export default class Sketch {
       70,
       window.innerWidth / window.innerHeight,
       0.001,
-      1000
+      5000
     );
 
     // var frustumSize = 10;
     // var aspect = window.innerWidth / window.innerHeight;
     // this.camera = new THREE.OrthographicCamera( frustumSize * aspect / - 2, frustumSize * aspect / 2, frustumSize / 2, frustumSize / - 2, -1000, 1000 );
-    this.camera.position.set(0, 0, 700);
+    this.camera.position.set(0, 0, 1000);
     this.textures = [
       new THREE.TextureLoader().load(t1),
       new THREE.TextureLoader().load(mask)
@@ -40,14 +40,24 @@ export default class Sketch {
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.time = 0;
+    this.move = 0;
 
     this.isPlaying = true;
+
+    this.mouseEffects();
     
     this.addObjects();
     this.resize();
     this.render();
     this.setupResize();
     // this.settings();
+  }
+
+  mouseEffects() {
+    window.addEventListener('mousewheel',(e)=>{
+      console.log(e.wheelDeltaY);
+      this.move += e.wheelDeltaY/1000;
+    })
   }
 
   settings() {
@@ -139,7 +149,7 @@ export default class Sketch {
         this.positions.setXYZ(index,posX,(j-256),0);
         this.coordinates.setXYZ(index,i,j,0);
         this.offset.setX(index,rand(-1000,1000));
-        this.speeds.setX(index,rand(0.4,1));
+        this.speeds.setX(index,rand(0,1));
         index++;
       }
     }

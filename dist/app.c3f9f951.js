@@ -36626,15 +36626,15 @@ if (typeof __THREE_DEVTOOLS__ !== 'undefined') {
 },{}],"js/shader/fragment.glsl":[function(require,module,exports) {
 module.exports = "#define GLSLIFY 1\nuniform float time;\nuniform float progress;\nuniform sampler2D t1;\nuniform vec4 resolution;\nvarying vec2 vUv;\nvarying vec3 vPosition;\nfloat PI = 3.141592653589793238;\nvoid main()\t{\n\t// vec2 newUV = (vUv - vec2(0.5))*resolution.zw + vec2(0.5);\n\tvec4 image = texture2D(t1,vUv);\n\tgl_FragColor = image;\n\t//gl_FragColor = vec4(vUv,0.0,1.);\n}";
 },{}],"js/shader/fragmentP.glsl":[function(require,module,exports) {
-module.exports = "#define GLSLIFY 1\nuniform float time;\nuniform float progress;\nuniform sampler2D t1;\nuniform vec4 resolution;\nvarying vec2 vUv;\nvarying vec3 vPosition;\nuniform sampler2D map;\nuniform sampler2D mask;\nvarying vec2 vCoordinates;\n\nfloat PI = 3.141592653589793238;\nvoid main()\t{\n    vec4 maskTexture = texture2D(mask,gl_PointCoord);\n\tvec2 myUV = vec2(vCoordinates.x/512.,vCoordinates.y/512.);\n    vec4 image = texture2D(map,myUV);\n\t\n    gl_FragColor = image;\n    //gl_FragColor = vec4(myUV,0.0,1.);\n    gl_FragColor.a *= maskTexture.r;\n}";
+module.exports = "#define GLSLIFY 1\nuniform float time;\nuniform float progress;\nuniform sampler2D t1;\nuniform vec4 resolution;\nvarying vec2 vUv;\nvarying vec3 vPosition;\nuniform sampler2D map;\nuniform sampler2D mask;\nuniform float move;\nvarying vec2 vCoordinates;\n\nfloat PI = 3.141592653589793238;\nvoid main()\t{\n    vec4 maskTexture = texture2D(mask,gl_PointCoord);\n\tvec2 myUV = vec2(vCoordinates.x/512.,vCoordinates.y/512.);\n    vec4 image = texture2D(map,myUV);\n\tfloat alpha = clamp(0.,1.,abs(vPosition.z/1000.0));\n    gl_FragColor = image;\n    \n    \n    //gl_FragColor = vec4(myUV,0.0,1.);\n    gl_FragColor.a *= maskTexture.r*alpha;\n    // gl_FragColor = vec4(alpha);\n}";
 },{}],"js/shader/vertex.glsl":[function(require,module,exports) {
 module.exports = "#define GLSLIFY 1\nuniform float time;\nvarying vec2 vUv;\nvarying vec3 vPosition;\nuniform vec2 pixels;\nfloat PI = 3.141592653589793238;\nvoid main() {\n  vUv = uv;\n  gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n}";
 },{}],"js/shader/vertexParticles.glsl":[function(require,module,exports) {
-module.exports = "#define GLSLIFY 1\nuniform float time;\nvarying vec2 vUv;\nattribute vec3 aCoordinates;\nvarying vec2 vCoordinates;\nvarying vec3 vPosition;\nattribute float aSpeed;\nattribute float aOffset;\n\nuniform float move;\n\nfloat PI = 3.141592653589793238;\nvoid main() {\n  vUv = uv;\n  vec3 pos = position;\n  pos.z = position.z + move * aSpeed + aOffset;\n\n  vCoordinates = aCoordinates.xy;\n  vPosition = position;\n  vec4 mvPosition = modelViewMatrix * vec4( position, 1. );\n  gl_PointSize = 2000. * ( 1. / - mvPosition.z );\n  gl_Position = projectionMatrix * mvPosition;\n}";
-},{}],"js/img/psyswirl.png":[function(require,module,exports) {
-module.exports = "/psyswirl.6bbee31d.png";
-},{}],"js/img/magic_03.png":[function(require,module,exports) {
-module.exports = "/magic_03.edd164c5.png";
+module.exports = "#define GLSLIFY 1\nuniform float time;\nvarying vec2 vUv;\nattribute vec3 aCoordinates;\nvarying vec2 vCoordinates;\nvarying vec3 vPosition;\nattribute float aSpeed;\nattribute float aOffset;\n\nuniform float move;\n\nfloat PI = 3.141592653589793238;\nvoid main() {\n  vUv = uv;\n  vec3 pos = position;\n  \n  pos.z = mod(position.z + move * aSpeed + aOffset +time*29.0,2000.);\nvec3 mixer = mix(pos, position, fract(-time*0.1));\n\n  vCoordinates = aCoordinates.xy;\n  vPosition = pos;\n  vec4 mvPosition = modelViewMatrix * vec4( mixer, 1. );\n  gl_PointSize = 2000. * ( 1. / - mvPosition.z );\n  gl_Position = projectionMatrix * mvPosition;\n\n}";
+},{}],"js/img/wispy.png":[function(require,module,exports) {
+module.exports = "/wispy.079b9ff5.png";
+},{}],"js/img/smoke_04.png":[function(require,module,exports) {
+module.exports = "/smoke_04.aee5881d.png";
 },{}],"node_modules/three-orbit-controls/index.js":[function(require,module,exports) {
 module.exports = function( THREE ) {
 	/**
@@ -37675,9 +37675,9 @@ var _vertex = _interopRequireDefault(require("./shader/vertex.glsl"));
 
 var _vertexParticles = _interopRequireDefault(require("./shader/vertexParticles.glsl"));
 
-var _psyswirl = _interopRequireDefault(require("./img/psyswirl.png"));
+var _wispy = _interopRequireDefault(require("./img/wispy.png"));
 
-var _magic_ = _interopRequireDefault(require("./img/magic_03.png"));
+var _smoke_ = _interopRequireDefault(require("./img/smoke_04.png"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -37709,15 +37709,17 @@ var Sketch = /*#__PURE__*/function () {
     this.renderer.setClearColor(0x000000, 1);
     this.renderer.outputEncoding = THREE.sRGBEncoding;
     this.container.appendChild(this.renderer.domElement);
-    this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.001, 1000); // var frustumSize = 10;
+    this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.001, 5000); // var frustumSize = 10;
     // var aspect = window.innerWidth / window.innerHeight;
     // this.camera = new THREE.OrthographicCamera( frustumSize * aspect / - 2, frustumSize * aspect / 2, frustumSize / 2, frustumSize / - 2, -1000, 1000 );
 
-    this.camera.position.set(0, 0, 700);
-    this.textures = [new THREE.TextureLoader().load(_psyswirl.default), new THREE.TextureLoader().load(_magic_.default)];
+    this.camera.position.set(0, 0, 1000);
+    this.textures = [new THREE.TextureLoader().load(_wispy.default), new THREE.TextureLoader().load(_smoke_.default)];
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.time = 0;
+    this.move = 0;
     this.isPlaying = true;
+    this.mouseEffects();
     this.addObjects();
     this.resize();
     this.render();
@@ -37725,6 +37727,16 @@ var Sketch = /*#__PURE__*/function () {
   }
 
   _createClass(Sketch, [{
+    key: "mouseEffects",
+    value: function mouseEffects() {
+      var _this = this;
+
+      window.addEventListener('mousewheel', function (e) {
+        console.log(e.wheelDeltaY);
+        _this.move += e.wheelDeltaY / 1000;
+      });
+    }
+  }, {
     key: "settings",
     value: function settings() {
       var that = this;
@@ -37840,7 +37852,7 @@ var Sketch = /*#__PURE__*/function () {
           this.positions.setXYZ(index, posX, j - 256, 0);
           this.coordinates.setXYZ(index, i, j, 0);
           this.offset.setX(index, rand(-1000, 1000));
-          this.speeds.setX(index, rand(0.4, 1));
+          this.speeds.setX(index, rand(0, 1));
           index++;
         }
       }
@@ -37884,7 +37896,7 @@ exports.default = Sketch;
 new Sketch({
   dom: document.getElementById("container")
 });
-},{"three":"node_modules/three/build/three.module.js","./shader/fragment.glsl":"js/shader/fragment.glsl","./shader/fragmentP.glsl":"js/shader/fragmentP.glsl","./shader/vertex.glsl":"js/shader/vertex.glsl","./shader/vertexParticles.glsl":"js/shader/vertexParticles.glsl","./img/psyswirl.png":"js/img/psyswirl.png","./img/magic_03.png":"js/img/magic_03.png","three-orbit-controls":"node_modules/three-orbit-controls/index.js"}],"../../../../../usr/local/lib/node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"three":"node_modules/three/build/three.module.js","./shader/fragment.glsl":"js/shader/fragment.glsl","./shader/fragmentP.glsl":"js/shader/fragmentP.glsl","./shader/vertex.glsl":"js/shader/vertex.glsl","./shader/vertexParticles.glsl":"js/shader/vertexParticles.glsl","./img/wispy.png":"js/img/wispy.png","./img/smoke_04.png":"js/img/smoke_04.png","three-orbit-controls":"node_modules/three-orbit-controls/index.js"}],"../../../../../usr/local/lib/node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -37912,7 +37924,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "59429" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "56613" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
