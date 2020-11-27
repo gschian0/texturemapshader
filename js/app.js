@@ -1,10 +1,27 @@
 import * as THREE from "three";
+import {EffectComposer} from "../node_modules/three/examples/jsm/postprocessing/EffectComposer.js";
+import {RenderPass} from "../node_modules/three/examples/jsm/postprocessing/RenderPass.js";
+import {ShaderPass} from "../node_modules/three/examples/jsm/postprocessing/ShaderPass.js";
+import {BloomPass } from "../node_modules/three/examples/jsm/postprocessing/BloomPass.js";
+import {GlitchPass } from "../node_modules/three/examples/jsm/postprocessing/GlitchPass.js";
+import {LUTPass } from "../node_modules/three/examples/jsm/postprocessing/GlitchPass.js";
+import {HalftonePass } from "../node_modules/three/examples/jsm/postprocessing/HalfTonePass.js";
+import {CopyShader} from "./shader/CopyShaderC.js";
+import {ColorifyShader} from "../node_modules/three/examples/jsm/shaders/ColorifyShader.js";
+
+import ppf from "./shader/ppf.glsl";
+import ppv from "./shader/ppv.glsl";
 import fragment from "./shader/fragment.glsl";
 import fragmentP from "./shader/fragmentP.glsl";
 import vertex from "./shader/vertex.glsl";
 import vertexP from "./shader/vertexParticles.glsl";
 import t1 from "./img/wispy.png";
+import t2 from "./img/gtrpng.png";
+import t3 from "./img/psyswirl.png";
 import mask from "./img/smoke_04.png";
+import dat from "dat-gui";
+let checker = require('glsl-checker');
+let map2 = require('glsl-map');
 let OrbitControls = require("three-orbit-controls")(THREE);
 
 export default class Sketch {
@@ -17,8 +34,10 @@ export default class Sketch {
     this.renderer = new THREE.WebGLRenderer({antialias:'true'});
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.setSize(this.width, this.height);
-    this.renderer.setClearColor(0x000000, 1); 
+    this.renderer.setClearColor(0xffffff, 1); 
     this.renderer.outputEncoding = THREE.sRGBEncoding;
+
+    this.composer = new EffectComposer(this.renderer);
 
     this.container.appendChild(this.renderer.domElement);
 
@@ -35,7 +54,9 @@ export default class Sketch {
     this.camera.position.set(0, 0, 1000);
     this.textures = [
       new THREE.TextureLoader().load(t1),
-      new THREE.TextureLoader().load(mask)
+      new THREE.TextureLoader().load(mask),
+      new THREE.TextureLoader().load(t2),
+      new THREE.TextureLoader().load(t3),
     ];
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -44,13 +65,27 @@ export default class Sketch {
 
     this.isPlaying = true;
 
+    
+    
+
     this.mouseEffects();
     
     this.addObjects();
     this.resize();
     this.render();
     this.setupResize();
+    this.composeEffects();
     // this.settings();
+  }
+
+  composeEffects(){
+    this.composer.addPass(new RenderPass(this.scene, this.camera));
+    this.colShade = ColorifyShader;
+    //this.colShade.uniforms.color.value.set = new THREE.Color(1.0,1.0,0.1);
+    this.bloomPass = new ShaderPass(this.colShade);
+    this.bloomPass.renderToScreen ='true';
+    this.composer.addPass(this.bloomPass);
+    
   }
 
   mouseEffects() {
@@ -97,6 +132,7 @@ export default class Sketch {
           value: new THREE.Vector2(1, 1)
         },
         t1 : { type: "t", value: this.textures[0]},
+        
       },
       // wireframe: true,
        transparent: true,
@@ -120,7 +156,7 @@ export default class Sketch {
         uvRate1: {
           value: new THREE.Vector2(1, 1)
         },
-        map : { type: "t", value: this.textures[0]},
+        map : { type: "t", value: this.textures[3]},
         mask : {type: "t", value: this.textures[1]}, 
         move : {type: "f", value: 0},
       },
@@ -135,6 +171,7 @@ export default class Sketch {
     this.pointsGeometry = new THREE.BufferGeometry();
 
     this.positions = new THREE.BufferAttribute(new Float32Array(number*3),3);
+    this.colors = new THREE.BufferAttribute(new Float32Array(number*3),3);
     this.coordinates = new THREE.BufferAttribute(new Float32Array(number*3),3);
     this.speeds = new THREE.BufferAttribute(new Float32Array(number),1);
     this.offset = new THREE.BufferAttribute(new Float32Array(number),1);
@@ -146,10 +183,11 @@ export default class Sketch {
     for(let i = 0; i < count; i++){
       let posX = i - count/2;
       for (let j = 0; j < count; j++){
-        this.positions.setXYZ(index,posX,(j-256),0);
+        this.positions.setXYZ(index,posX,(j-256),Math.sin(i*j));
         this.coordinates.setXYZ(index,i,j,0);
         this.offset.setX(index,rand(-1000,1000));
         this.speeds.setX(index,rand(0,1));
+        this.colors.setXYZ(index,Math.random(0.,1.),Math.random(0.,1.),Math.random(0.,1.));
         index++;
       }
     }
@@ -157,11 +195,16 @@ export default class Sketch {
     this.pointsGeometry.setAttribute("aCoordinates", this.coordinates);
     this.pointsGeometry.setAttribute("aSpeed", this.speeds);
     this.pointsGeometry.setAttribute("aOffset", this.offset);
+    this.pointsGeometry.setAttribute("aColors", this.colors);
+    
 
     this.points = new THREE.Points(this.pointsGeometry, this.pointsMaterial);
 
     this.scene.add(this.points);
-    // this.scene.add(this.plane);
+
+    // this.sphereGeometry = new THREE.SphereBufferGeometry(5,5,5,5);
+    // this.sphereMaterial = new THREE.MeshNormalMaterial();
+    //  this.scene.add(this.plane);
 
   }
 
@@ -177,12 +220,15 @@ export default class Sketch {
   }
 
   render() {
+
+    
     if (!this.isPlaying) return;
-    this.time += 0.05;
+    this.time += 0.09;
     this.pointsMaterial.uniforms.time.value = this.time;
     this.pointsMaterial.uniforms.move.value = this.move;
     requestAnimationFrame(this.render.bind(this));
     this.renderer.render(this.scene, this.camera);
+    //this.composer.render(this.time);
   }
 }
 
