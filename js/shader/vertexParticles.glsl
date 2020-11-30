@@ -1,6 +1,7 @@
 #pragma glslify: map2 = require('glsl-map')
 
 uniform float time;
+uniform sampler2D t1;
 varying vec2 vUv;
 attribute vec3 aCoordinates;
 varying vec2 vCoordinates;
