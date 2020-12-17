@@ -8,6 +8,7 @@ uniform sampler2D map;
 uniform sampler2D mask;
 uniform float move;
 varying vec2 vCoordinates;
+//varying vec3 vColors;
 
 float PI = 3.141592653589793238;
 void main()	{
